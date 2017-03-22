@@ -81,9 +81,11 @@ int distToStrength(int d)
   {
     return 0;
   }
-  //simple linear conversion from 0 to 200cm
-  //corresponding to 200 to 0 vibration strength
-  return max(200-d,0);
+
+  //distance is mapped to vibration using an exponential
+  //function, which gives maximum vibration at 0cm and
+  //minimum at 263cm
+  min(max((20000/(d+70)-60),0),255);
 }
 
 //update vibrator with given strength

@@ -24,10 +24,11 @@ int d_buffer_1[buffer_len];
 int d_buffer_2[buffer_len];
 int d_buffer_3[buffer_len];
 
-//buffers containing changes since last (about) 5 seconds
-int change_buffer_1[5];
-int change_buffer_2[5];
-int change_buffer_3[5];
+//buffers containing changes since last (about) 5 seconds (a loop takes about 110ms)
+const int change_buffer_length = 45;
+int change_buffer_1[change_buffer_length];
+int change_buffer_2[change_buffer_length];
+int change_buffer_3[change_buffer_length];
 
 void setup() {
   //init sonar pins
@@ -57,33 +58,30 @@ void loop() {
   //read distances from sonars and print them to ouput and put them to
   //corresponding buffers
   int d = getDistance(sonar_1);
-  d_buffer_1[buffer_index] = d;
+  if(d > 0) d_buffer_1[buffer_index] = d;
   Serial.print(d);
   Serial.print(" ");
   d = getDistance(sonar_2);
-  d_buffer_2[buffer_index] = d;
+  if(d > 0) d_buffer_2[buffer_index] = d;
   Serial.print(d);
   Serial.print(" ");
   d = getDistance(sonar_3);
-  d_buffer_3[buffer_index] = d;
+  if(d > 0) d_buffer_3[buffer_index] = d;
   Serial.println(d);
 
 
   //increase index to next slot keeping in range 0-buffer_len-1
   buffer_index = (buffer_index+1)%buffer_len;
 
-  //record change every 10th loop
-  if(buffer_index == 0) {
-    //shift the array and insert new value first
-    for(int i=4;i>0;i--) {
-      change_buffer_1[i] = change_buffer_1[i-1];
-      change_buffer_2[i] = change_buffer_2[i-1];
-      change_buffer_3[i] = change_buffer_3[i-1];
-    }
-    change_buffer_1[0] = average(d_buffer_1);
-    change_buffer_2[0] = average(d_buffer_2);
-    change_buffer_3[0] = average(d_buffer_3);
+  //shift the array and insert new value first
+  for(int i=change_buffer_length;i>0;i--) {
+    change_buffer_1[i] = change_buffer_1[i-1];
+    change_buffer_2[i] = change_buffer_2[i-1];
+    change_buffer_3[i] = change_buffer_3[i-1];
   }
+  change_buffer_1[0] = average(d_buffer_1);
+  change_buffer_2[0] = average(d_buffer_2);
+  change_buffer_3[0] = average(d_buffer_3);
 
 
   //vibrate only if there's significant change
@@ -147,12 +145,12 @@ boolean significant_change(int bufr[])
 {
   int min_value = bufr[0];
 
-  for(int n=1;n<5;n++)
+  for(int n=1;n<change_buffer_length;n++)
   {
     min_value = min(bufr[n],min_value);
   }
 
-  for(int n=0;n<5;n++)
+  for(int n=0;n<change_buffer_length;n++)
   {
     if(bufr[n]-min_value > DISTANCE_TRESHOLD)
       return true;

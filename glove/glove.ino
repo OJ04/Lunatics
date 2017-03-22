@@ -1,4 +1,5 @@
 #define SONAR_PWR_PIN 2
+#define DISTANCE_TRESHOLD 5
 
 //define vibrators: pin, last value given to the pin
 int vibrator_1[] = {3,0};
@@ -23,6 +24,10 @@ int d_buffer_1[buffer_len];
 int d_buffer_2[buffer_len];
 int d_buffer_3[buffer_len];
 
+//buffers containing changes since last (about) 5 seconds
+int change_buffer_1[5];
+int change_buffer_2[5];
+int change_buffer_3[5];
 
 void setup() {
   //init sonar pins
@@ -41,6 +46,7 @@ void setup() {
 
   //serial output for debugging
   Serial.begin(115200);
+
   
 }
 
@@ -62,15 +68,35 @@ void loop() {
   d_buffer_3[buffer_index] = d;
   Serial.println(d);
 
+
   //increase index to next slot keeping in range 0-buffer_len-1
   buffer_index = (buffer_index+1)%buffer_len;
 
-  //calculate vibration strength from average of last measuremnts
-  //and update vibrators accordingly
-  vibrate(vibrator_1,distToStrength(average(d_buffer_1)));
-  vibrate(vibrator_2,distToStrength(average(d_buffer_2)));
-  vibrate(vibrator_3,distToStrength(average(d_buffer_3)));
-  
+  //record change every 10th loop
+  if(buffer_index == 0) {
+    //shift the array and insert new value first
+    for(int i=4;i>0;i--) {
+      change_buffer_1[i] = change_buffer_1[i-1];
+      change_buffer_2[i] = change_buffer_2[i-1];
+      change_buffer_3[i] = change_buffer_3[i-1];
+    }
+    change_buffer_1[0] = average(d_buffer_1);
+    change_buffer_2[0] = average(d_buffer_2);
+    change_buffer_3[0] = average(d_buffer_3);
+  }
+
+
+  //vibrate only if there's significant change
+  if(significant_change(change_buffer_1) ||
+     significant_change(change_buffer_2) ||
+     significant_change(change_buffer_3)) {
+
+    //calculate vibration strength from average of last measuremnts
+    //and update vibrators accordingly
+    vibrate(vibrator_1,distToStrength(average(d_buffer_1)));
+    vibrate(vibrator_2,distToStrength(average(d_buffer_2)));
+    vibrate(vibrator_3,distToStrength(average(d_buffer_3)));
+  }
 }
 
 //convert distance to vibration stregnth
@@ -117,6 +143,23 @@ int average(int bufr[])
   return sum/buffer_len;
 }
 
+boolean significant_change(int bufr[])
+{
+  int min_value = bufr[0];
+
+  for(int n=1;n<5;n++)
+  {
+    min_value = min(bufr[n],min_value);
+  }
+
+  for(int n=0;n<5;n++)
+  {
+    if(bufr[n]-min_value > DISTANCE_TRESHOLD)
+      return true;
+  }
+  return false;
+}
+
 //set sonar pins output and input properly
 void initSonar(int sonar[])
 {
@@ -151,3 +194,5 @@ distance = (duration/2) / 29.1;
 
 return distance; //return the distance. 0 if we timed out
 }
+
+

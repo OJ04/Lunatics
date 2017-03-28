@@ -1,5 +1,4 @@
 #define SONAR_PWR_PIN 2
-#define DISTANCE_TRESHOLD 5
 
 //define vibrators: pin, last value given to the pin
 int vibrator_1[] = {3,0};
@@ -25,10 +24,12 @@ int d_buffer_2[buffer_len];
 int d_buffer_3[buffer_len];
 
 //buffers containing changes since last (about) 5 seconds (a loop takes about 110ms)
-const int change_buffer_length = 45;
-int change_buffer_1[change_buffer_length];
-int change_buffer_2[change_buffer_length];
-int change_buffer_3[change_buffer_length];
+const int c_treshold = 10; //change treshold 10cm
+const int c_buffer_length = 45;
+int c_buffer_1[c_buffer_length];
+int c_buffer_2[c_buffer_length];
+int c_buffer_3[c_buffer_length];
+int c_buffer_index = 0;
 
 void setup() {
   //init sonar pins
@@ -73,27 +74,27 @@ void loop() {
   //increase index to next slot keeping in range 0-buffer_len-1
   buffer_index = (buffer_index+1)%buffer_len;
 
-  //shift the array and insert new value first
-  for(int i=change_buffer_length;i>0;i--) {
-    change_buffer_1[i] = change_buffer_1[i-1];
-    change_buffer_2[i] = change_buffer_2[i-1];
-    change_buffer_3[i] = change_buffer_3[i-1];
-  }
-  change_buffer_1[0] = average(d_buffer_1);
-  change_buffer_2[0] = average(d_buffer_2);
-  change_buffer_3[0] = average(d_buffer_3);
+  c_buffer_index = (c_buffer_index+1)%c_buffer_length;
+  c_buffer_1[c_buffer_index] = average(d_buffer_1);
+  c_buffer_2[c_buffer_index] = average(d_buffer_2);
+  c_buffer_3[c_buffer_index] = average(d_buffer_3);
 
 
   //vibrate only if there's significant change
-  if(significant_change(change_buffer_1) ||
-     significant_change(change_buffer_2) ||
-     significant_change(change_buffer_3)) {
+  if(significant_change(c_buffer_1) ||
+     significant_change(c_buffer_2) ||
+     significant_change(c_buffer_3)) {
 
     //calculate vibration strength from average of last measuremnts
     //and update vibrators accordingly
     vibrate(vibrator_1,distToStrength(average(d_buffer_1)));
     vibrate(vibrator_2,distToStrength(average(d_buffer_2)));
     vibrate(vibrator_3,distToStrength(average(d_buffer_3)));
+  }
+  else {
+    vibrate(vibrator_1,0);
+    vibrate(vibrator_2,0);
+    vibrate(vibrator_3,0);
   }
 }
 
@@ -109,6 +110,7 @@ int distToStrength(int d)
   //distance is mapped to vibration using an exponential
   //function, which gives maximum vibration at 0cm and
   //minimum at 263cm
+  //value between 0 and 255
   return min(max((20000/(d+70)-60),0),255);
 }
 
@@ -144,18 +146,19 @@ int average(int bufr[])
 boolean significant_change(int bufr[])
 {
   int min_value = bufr[0];
+  int max_value = bufr[0];
 
-  for(int n=1;n<change_buffer_length;n++)
+  for(int n=1;n<c_buffer_length;n++)
   {
     min_value = min(bufr[n],min_value);
+    max_value = max(bufr[n],max_value);
   }
 
-  for(int n=0;n<change_buffer_length;n++)
-  {
-    if(bufr[n]-min_value > DISTANCE_TRESHOLD)
-      return true;
+  if((max_value-min_value) > c_treshold) {
+    Serial.print("significant: ");
+    Serial.println((max_value-min_value));
   }
-  return false;
+  else return false;
 }
 
 //set sonar pins output and input properly
@@ -193,7 +196,7 @@ if(duration > 0) {
   
   return distance; //return the distance. 0 if we timed out
 }
-else return 263;
+else return 343; //max distance with timeout 20ms
 }
 
 

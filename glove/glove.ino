@@ -58,15 +58,15 @@ void loop() {
   //read distances from sonars and print them to ouput and put them to
   //corresponding buffers
   int d = getDistance(sonar_1);
-  if(d > 0) d_buffer_1[buffer_index] = d;
+  d_buffer_1[buffer_index] = d;
   Serial.print(d);
   Serial.print(" ");
   d = getDistance(sonar_2);
-  if(d > 0) d_buffer_2[buffer_index] = d;
+  d_buffer_2[buffer_index] = d;
   Serial.print(d);
   Serial.print(" ");
   d = getDistance(sonar_3);
-  if(d > 0) d_buffer_3[buffer_index] = d;
+  d_buffer_3[buffer_index] = d;
   Serial.println(d);
 
 
@@ -187,10 +187,13 @@ if(duration == 0)
   digitalWrite(SONAR_PWR_PIN,HIGH);
 }
 
-//calculate the distance (sound speed in air is aprox. 291m/s), /2 because of the pulse going and coming
-distance = (duration/2) / 29.1;
-
-return distance; //return the distance. 0 if we timed out
+if(duration > 0) {
+  //calculate the distance (sound speed in air is aprox. 291m/s), /2 because of the pulse going and coming
+  distance = (duration/2) / 29.1;
+  
+  return distance; //return the distance. 0 if we timed out
+}
+else return 263;
 }
 
 

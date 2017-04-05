@@ -12,7 +12,7 @@ int sonar_2[] = {5,6};
 int sonar_3[] = {12,11};
 
 //lenght of buffer containing last measurements(not in order)
-const int buffer_len = 10;
+const int buffer_len = 2;
 //index where to put new distance reading
 int buffer_index = 0;
 
@@ -55,7 +55,7 @@ void setup() {
 void loop() {
   //limit to make buffer readings span longer time period and make
   //serial output more readable
-  delay(50);
+  delay(10);
   //read distances from sonars and print them to ouput and put them to
   //corresponding buffers
   int d = getDistance(sonar_1);

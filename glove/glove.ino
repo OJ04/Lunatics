@@ -11,8 +11,11 @@ int sonar_1[] = {8,7};
 int sonar_2[] = {5,6};
 int sonar_3[] = {12,11};
 
+//max distance of measurement
+const int max_dist = 412; //change treshold 10cm
+
 //lenght of buffer containing last measurements(not in order)
-const int buffer_len = 2;
+const int buffer_len = 5;
 //index where to put new distance reading
 int buffer_index = 0;
 
@@ -23,9 +26,9 @@ int d_buffer_1[buffer_len];
 int d_buffer_2[buffer_len];
 int d_buffer_3[buffer_len];
 
-//buffers containing changes since last (about) 5 seconds (a loop takes about 110ms)
-const int c_treshold = 10; //change treshold 10cm
-const int c_buffer_length = 45;
+//buffers containing changes since last (about) 2 seconds (a loop takes about 83ms)
+const int c_treshold = 15; //change treshold 10cm
+const int c_buffer_length = 28;
 int c_buffer_1[c_buffer_length];
 int c_buffer_2[c_buffer_length];
 int c_buffer_3[c_buffer_length];
@@ -55,7 +58,7 @@ void setup() {
 void loop() {
   //limit to make buffer readings span longer time period and make
   //serial output more readable
-  delay(10);
+  //delay(10);
   //read distances from sonars and print them to ouput and put them to
   //corresponding buffers
   int d = getDistance(sonar_1);
@@ -81,7 +84,7 @@ void loop() {
 
 
   //vibrate only if there's significant change
-  if(significant_change(c_buffer_1) ||
+  if(true || significant_change(c_buffer_1) ||
      significant_change(c_buffer_2) ||
      significant_change(c_buffer_3)) {
 
@@ -111,7 +114,8 @@ int distToStrength(int d)
   //function, which gives maximum vibration at 0cm and
   //minimum at 263cm
   //value between 0 and 255
-  return min(max((20000/(d+70)-60),0),255);
+  //return min(max((20000/(d+70)-60),0),255);
+  return min(max((20000/(d+20)-50),0),255);
 }
 
 //update vibrator with given strength
@@ -136,11 +140,13 @@ void vibrate(int vibrator[], int strength)
 int average(int bufr[])
 {
   int sum = 0;
+  int amt = 0;
   for(int n=0;n<buffer_len;n++)
   {
-    sum += bufr[n];
+    amt++;
+    if(bufr[n] < max_dist) sum += bufr[n];
   }
-  return sum/buffer_len;
+  return sum/amt;
 }
 
 boolean significant_change(int bufr[])
@@ -178,8 +184,8 @@ digitalWrite(sonar[0], HIGH);
 delayMicroseconds(10);
 digitalWrite(sonar[0], LOW);
 
-//wait for echo with timeout 20ms
-duration = pulseIn(sonar[1], HIGH, 20000);
+//wait for echo with timeout 24ms
+duration = pulseIn(sonar[1], HIGH, 24000);
 
 //if timeout, reset the sonars to get the
 //sonas stop waiting for echo
@@ -196,7 +202,7 @@ if(duration > 0) {
   
   return distance; //return the distance. 0 if we timed out
 }
-else return 343; //max distance with timeout 20ms
+else return max_dist; //max distance with timeout 24ms
 }
 
 

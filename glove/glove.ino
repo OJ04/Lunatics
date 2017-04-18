@@ -1,5 +1,12 @@
 #define SONAR_PWR_PIN 2
 
+#define BUTTON_PIN 4
+
+//internal button variables for debouncing
+int btn;        //current state
+int btn_t;      //time since state change
+
+
 //define vibrators: pin, last value given to the pin
 int vibrator_1[] = {3,0};
 int vibrator_2[] = {10,0};
@@ -73,6 +80,7 @@ void loop() {
   d_buffer_3[buffer_index] = d;
   Serial.println(d);
 
+  Serial.println(read_button());
 
   //increase index to next slot keeping in range 0-buffer_len-1
   buffer_index = (buffer_index+1)%buffer_len;
@@ -122,7 +130,7 @@ int distToStrength(int d)
 void vibrate(int vibrator[], int strength)
 {
 
-  //if vibrator turned of, give 1ms pulse of highest strength
+  //if vibrator turned off, give 1ms pulse of highest strength
   //to start the motor
   if(vibrator[1] == 0 && strength > 0)
   {
@@ -188,7 +196,7 @@ digitalWrite(sonar[0], LOW);
 duration = pulseIn(sonar[1], HIGH, 24000);
 
 //if timeout, reset the sonars to get the
-//sonas stop waiting for echo
+//sonars stop waiting for echo
 if(duration == 0)
 {
   digitalWrite(SONAR_PWR_PIN,LOW);
@@ -203,6 +211,25 @@ if(duration > 0) {
   return distance; //return the distance. 0 if we timed out
 }
 else return max_dist; //max distance with timeout 24ms
+}
+
+boolean read_button()
+{
+  int b = digitalRead(BUTTON_PIN);
+  if(btn != b)
+  {
+    if(btn_t == -1)
+    {
+      btn_t = millis();
+    }
+    else if(millis()-btn_t > 50)
+    {
+      //if reading has not changed in 50ms, then accept it as the current state
+      btn = b;
+      btn_t = -1;
+    }
+  }
+  return (boolean)btn;
 }
 
 

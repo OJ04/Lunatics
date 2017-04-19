@@ -6,6 +6,9 @@
 int btn;        //current state
 int btn_t;      //time since state change
 
+//vibration state
+boolean button_state = false;
+boolean vibrate_on = false;
 
 //define vibrators: pin, last value given to the pin
 int vibrator_1[] = {3,0};
@@ -59,7 +62,7 @@ void setup() {
   //serial output for debugging
   Serial.begin(115200);
 
-  
+  button_state = read_button();
 }
 
 void loop() {
@@ -90,11 +93,17 @@ void loop() {
   c_buffer_2[c_buffer_index] = average(d_buffer_2);
   c_buffer_3[c_buffer_index] = average(d_buffer_3);
 
+  //when putton is released, change vibrate on/off
+  if(button_state == true && read_button() == false) {
+    vibrate_on = !vibrate_on;
+    button_state = false;
+  }
+  else {
+    button_state = read_button();
+  }
 
-  //vibrate only if there's significant change
-  if(true || significant_change(c_buffer_1) ||
-     significant_change(c_buffer_2) ||
-     significant_change(c_buffer_3)) {
+  //vibrate in "on" state
+  if(vibrate_on) {
 
     //calculate vibration strength from average of last measuremnts
     //and update vibrators accordingly

@@ -37,7 +37,7 @@ int d_buffer_left[buffer_len];
 
 //time since last change
 unsigned long pulse_interval = 0;
-unsigned long pulse_start_time = 0;
+unsigned long interval_start_time = 0;
 const int pulse_duration = 100;
 
 void setup() {
@@ -99,29 +99,23 @@ void loop() {
   //vibrate in "on" state
   if(vibrate_on) {
 
-    //calculate vibration strength from average of last measuremnts
-    //and update vibrators accordingly
-    //vibrate(vibrator_right,(distToStrength(average(d_buffer_right))/2));
-    //vibrate(vibrator_front,distToStrength(average(d_buffer_front)));
-    //vibrate(vibrator_left,(distToStrength(average(d_buffer_left))/2));
     if(pulse_interval > 0) {
-        Serial.print("Interval: ");
-        Serial.println(pulse_interval);
+        //Serial.print("Interval: ");
+        //Serial.println(pulse_interval);
 
       //start pulsing
-      if(pulse_start_time == 0) pulse_start_time = millis();
-      if((millis()-pulse_start_time) > (pulse_interval+pulse_duration)) {
+      if(interval_start_time == 0) interval_start_time = millis();
+      //if the pulse sequence (interval+pulse duration) is over, stop vibration
+      if((millis()-interval_start_time) > (pulse_interval+pulse_duration)) {
         vibrate(vibrator_right,0);
         vibrate(vibrator_front,0);
         vibrate(vibrator_left,0);
-        Serial.print("Start time:");
-        Serial.print(pulse_start_time);
-        Serial.print(", millis:");
-        Serial.print(millis());
         Serial.println("End pulse.");
-        pulse_start_time = millis();
+        //reset interval, set sequence start timestamp
+        interval_start_time = millis();
       }
-      else if((millis()-pulse_start_time) > pulse_interval) {
+      //if the interval amount of time has passed, start pulse
+      else if((millis()-interval_start_time) > pulse_interval) {
         vibrate(vibrator_right,250);
         vibrate(vibrator_front,250);
         vibrate(vibrator_left,250);
@@ -129,7 +123,7 @@ void loop() {
       }
     }
     else {
-      pulse_start_time = 0;
+      interval_start_time = 0;
       vibrate(vibrator_right,0);
       vibrate(vibrator_front,0);
       vibrate(vibrator_left,0);
@@ -172,6 +166,7 @@ int distToInterval(int d)
   if(d < 150) {
     return (d*8);
   }
+  else return 0;
 }
 
 //update vibrator with given strength

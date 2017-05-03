@@ -93,7 +93,10 @@ void loop() {
     button_state = read_button();
   }
 
-  int min_distance = min(min(average(d_buffer_front),average(d_buffer_left)),average(d_buffer_right));
+  int min_distance = 200;
+  if(average(d_buffer_front) > 0) min_distance = average(d_buffer_front);
+  if(average(d_buffer_left) > 0) min_distance = min(min_distance,average(d_buffer_left));
+  if(average(d_buffer_right) > 0) min_distance = min(min_distance,average(d_buffer_right));
   Serial.print("Min distance: ");
   Serial.println(min_distance);
   pulse_interval = distToInterval(min_distance);
@@ -113,16 +116,16 @@ void loop() {
         vibrate(vibrator_right,0);
         vibrate(vibrator_front,0);
         vibrate(vibrator_left,0);
-        Serial.println("End pulse.");
+        
         //reset interval, set sequence start timestamp
         interval_start_time = millis();
       }
       //if the interval amount of time has passed, start pulse
       else if((millis()-interval_start_time) > pulse_interval) {
-        vibrate(vibrator_right,distToStrength(average(d_buffer_right)));
+        vibrate(vibrator_right,max(distToStrength(average(d_buffer_right)),128));
         vibrate(vibrator_front,255);
-        vibrate(vibrator_left,distToStrength(average(d_buffer_left)));
-        Serial.println("Start pulse");
+        vibrate(vibrator_left,max(distToStrength(average(d_buffer_left)),128));
+        Serial.println(max(distToStrength(average(d_buffer_right)),128));
       }
     }
     else {
@@ -154,7 +157,7 @@ int distToStrength(int d)
   //minimum at 263cm
   //value between 0 and 255
   //return min(max((20000/(d+70)-60),0),255);
-  return min(max((20000/(d+20)-50),0),255);
+  return (min(max((20000/(d+20)-50),128),255));
 }
 
 //convert distance to pulse interval

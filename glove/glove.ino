@@ -24,20 +24,21 @@ int sonar_left[] = {12,11};
 const int max_dist = 412; //change treshold 10cm
 
 //lenght of buffer containing last measurements(not in order)
-const int buffer_len = 5;
+const int buffer_len = 10;
 //index where to put new distance reading
 int buffer_index = 0;
 
 //buffers containing last measurements(not in order)
 //measurements are not in order to avoid shifting each buffer everytime a new
 //reading is measured, which would be slow
-int d_buffer_right[buffer_len];
-int d_buffer_front[buffer_len];
-int d_buffer_left[buffer_len];
+unsigned int d_buffer_right[buffer_len];
+unsigned int d_buffer_front[buffer_len];
+unsigned int d_buffer_left[buffer_len];
 
 //time since last change
 unsigned long pulse_interval = 0;
 unsigned long interval_start_time = 0;
+unsigned long pulse_start_time = 0;
 const int pulse_duration = 100;
 
 void setup() {
@@ -93,12 +94,14 @@ void loop() {
     button_state = read_button();
   }
 
-  int min_distance = 200;
+  int min_distance = 201;
   if(average(d_buffer_front) > 0) min_distance = average(d_buffer_front);
   if(average(d_buffer_left) > 0) min_distance = min(min_distance,average(d_buffer_left));
   if(average(d_buffer_right) > 0) min_distance = min(min_distance,average(d_buffer_right));
-  Serial.print("Min distance: ");
-  Serial.println(min_distance);
+  //Serial.print("Min distance: ");
+  //Serial.println(min_distance);
+  //Serial.print("Avg right ");
+  //Serial.println(average(d_buffer_right));
   pulse_interval = distToInterval(min_distance);
 
 
@@ -106,30 +109,38 @@ void loop() {
   if(vibrate_on) {
 
     if(pulse_interval > 0) {
-        //Serial.print("Interval: ");
-        //Serial.println(pulse_interval);
+        Serial.print("Interval: ");
+        Serial.println(pulse_interval);
 
       //start pulsing
       if(interval_start_time == 0) interval_start_time = millis();
       //if the pulse sequence (interval+pulse duration) is over, stop vibration
-      if((millis()-interval_start_time) > (pulse_interval+pulse_duration)) {
+      if(pulse_start_time > 0 && (millis()-pulse_start_time) > pulse_duration) {
         vibrate(vibrator_right,0);
         vibrate(vibrator_front,0);
         vibrate(vibrator_left,0);
-        
+        Serial.println("End pulse");
         //reset interval, set sequence start timestamp
         interval_start_time = millis();
+        pulse_start_time = 0;
       }
       //if the interval amount of time has passed, start pulse
-      else if((millis()-interval_start_time) > pulse_interval) {
+      else if(pulse_start_time == 0 && (millis()-interval_start_time) > pulse_interval) {
+        pulse_start_time = millis();
+        Serial.print(pulse_start_time);
+        Serial.print(" ");
+        Serial.print(millis());
+        Serial.print(" ");
+        Serial.println("Start pulse");
+        
         vibrate(vibrator_right,max(distToStrength(average(d_buffer_right)),128));
         vibrate(vibrator_front,255);
         vibrate(vibrator_left,max(distToStrength(average(d_buffer_left)),128));
-        Serial.println(max(distToStrength(average(d_buffer_right)),128));
       }
     }
     else {
       interval_start_time = 0;
+      pulse_start_time = 0;
       vibrate(vibrator_right,0);
       vibrate(vibrator_front,0);
       vibrate(vibrator_left,0);
@@ -169,7 +180,7 @@ int distToInterval(int d)
     return 0;
   }
 
-  if(d < 150) {
+  if(d < 200) {
     return (d*8);
   }
   else return 0;
@@ -197,14 +208,15 @@ void vibrate(int vibrator[], int strength)
 //computes the average of all values in the distance buffer
 int average(int bufr[])
 {
-  int sum = 0;
-  int amt = 0;
+  unsigned long sum = 0;
+  unsigned long amt = 0;
+  
   for(int n=0;n<buffer_len;n++)
   {
     amt++;
-    if(bufr[n] < max_dist) sum += bufr[n];
+    sum += bufr[n];
   }
-  return sum/amt;
+  return int(sum/amt);
 }
 
 //set sonar pins output and input properly

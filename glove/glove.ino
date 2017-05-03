@@ -93,7 +93,7 @@ void loop() {
     button_state = read_button();
   }
 
-  pulse_interval = distToInterval(average(d_buffer_front));
+  pulse_interval = distToInterval(min(average(d_buffer_front),average(d_buffer_left),average(d_buffer_right)));
 
 
   //vibrate in "on" state
@@ -116,9 +116,9 @@ void loop() {
       }
       //if the interval amount of time has passed, start pulse
       else if((millis()-interval_start_time) > pulse_interval) {
-        vibrate(vibrator_right,250);
-        vibrate(vibrator_front,250);
-        vibrate(vibrator_left,250);
+        vibrate(vibrator_right,distToStrength(average(vibrator_right)));
+        vibrate(vibrator_front,255);
+        vibrate(vibrator_left,distToStrength(average(vibrator_left)));
         Serial.println("Start pulse");
       }
     }
